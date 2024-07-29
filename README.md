@@ -83,6 +83,8 @@ cleanUp(gzCsvPath)      # Clean up gzipped file (~ 2.6 GB)
 #### Data Preparation
 Set column names and separates the test set from the training data based on the dataset description (500,000 test sets).
 
+Dataset Description: The first column is the class label (1 for signal, 0 for background), followed by the 28 features (21 low-level features then 7 high-level features). The first 21 features (columns 2-22) are kinematic properties measured by the particle detectors in the accelerator. The last seven features are functions of the first 21 features.
+
 ##### Script
 ```shell
 python data/data_preparation.py
