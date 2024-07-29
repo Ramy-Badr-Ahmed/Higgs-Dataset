@@ -1,0 +1,4 @@
+Mean Squared Error: 0.0071
+Mean Absolute Error: 0.0525
+R-squared: 0.9277
+Root Mean Squared Error: 0.0842

@@ -1,0 +1,14 @@
+numpy
+matplotlib
+scipy
+pandas
+requests
+tqdm
+seaborn
+scikit-learn
+plotly
+dask[complete]
+tensorflow
+dask-cuda
+cupy-cuda11x
+dask-ml

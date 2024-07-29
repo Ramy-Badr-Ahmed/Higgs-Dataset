@@ -1,0 +1,7 @@
+.venv/
+.idea
+data/higgs/*csv.gz
+data/higgs/*.csv
+data/higgs/*.zip
+*.log
+__pycache__/

@@ -1,0 +1,5 @@
+higgs.zip           2.62 GB (2,816,865,137 bytes)
+HIGGS.csv.gz        2.62 GB (2,816,409,600 bytes)
+HIGGS.csv                  7.48 GB (8,035,497,980 bytes)
+prepared-higgs_train.csv   4.95 GB (5,324,886,987 bytes)
+prepared-higgs_test.csv    241 MB (253,567,874 bytes)
