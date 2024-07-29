@@ -174,7 +174,7 @@ The model is defined using Keras with the following default architecture for bin
 - Hidden layer with 64 neurons (dense)
 - Output layer with 1 neuron (activation function: sigmoid)
 
-You can customize the model architecture by providing a different modelBuilder function in the ModelTrainer class.
+You can customise the model architecture by providing a different `modelBuilder` callable in the ModelTrainer class.
 
 The trained models and training loss plots are saved under `kerasModel/trainer/trainedModels`.
 
