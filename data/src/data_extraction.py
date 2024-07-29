@@ -15,7 +15,7 @@ def extractZippedData(zipPath, extractTo):
     - extractTo (str): Folder path to extract the zip contents.
     """
     try:
-        os.makedirs(extractTo, exist_ok = True)       # Ensure the extraction directory exists
+        os.makedirs(extractTo, exist_ok = True)
 
         with zipfile.ZipFile(zipPath, 'r') as zipRef:
             fileNames = zipRef.namelist()        # Get list of files in the zip

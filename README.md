@@ -132,7 +132,7 @@ dataFrame = dataLoader.loadData()
 dataLoader.previewData(dataFrame)
 ```
 
-### Exploratory Data Analysis (EDA):
+### Exploratory Data Analysis (EDA)
 
 Provides various functions for performing EDA, including visualising correlations, checking missing values, and plotting feature distributions.
 The data analysis plots are saved under `eda/plots`.
@@ -166,11 +166,11 @@ eda.visualizeFeatureBoxplot('feature_2')
 ### Usage
 
 #### Training the Model
-The model is defined using Keras with the following default architecture:
+The model is defined using Keras with the following default architecture for binary classification:
 
 - Input layer with 128 neurons (dense)
 - Hidden layer with 64 neurons (dense)
-- Output layer with 1 neuron (for regression)
+- Output layer with 1 neuron (activation function: sigmoid)
 
 You can customize the model architecture by providing a different modelBuilder function in the ModelTrainer class.
 
@@ -186,7 +186,7 @@ python kerasModel/trainer/model_trainer.py
 filePath = '../../data/higgs/prepared-higgs_train.csv'
 
 def customModel(inputShape: int) -> Model:
-    """Example of a custom model builder function for regression"""
+    """Example of a custom model builder function for classification"""
     model = keras.Sequential([
         layers.Input(shape=(inputShape,)),
         layers.Dense(512, activation='relu'),
@@ -194,7 +194,7 @@ def customModel(inputShape: int) -> Model:
         layers.Dense(256, activation='relu'),
         layers.Dense(128, activation='relu'),
         layers.Dense(64, activation='relu'),
-        layers.Dense(1)
+        layers.Dense(1, activation='sigmoid')  # Sigmoid for binary classification
     ])
     return model
         
@@ -208,8 +208,8 @@ params = {
     "minSampleSize": 100000,
     "learningRate": 0.001,
     "modelBuilder": customModel,     # callable
-    "loss": 'mean_absolute_error',
-    "metrics": ['mae']
+    "loss": 'binary_crossentropy',    
+    "metrics": ['accuracy']
 }
 trainer = ModelTrainer(dataFrame, params)
 trainer.trainKerasModel()           # optional: Train the Keras model with sampling, Set: trainKerasModel(sample = true, frac = 0.1).
@@ -219,9 +219,15 @@ trainer.plotTrainingHistory()
 #### Evaluating the Model
 The evaluation script computes metrics like:
 
-- Mean Squared Error (MSE)
-- Mean Absolute Error (MAE)
-- R-squared (R²)
+- Accuracy
+- Precision
+- Recall (Sensitivity
+- F1 Score
+- Classification Report
+
+The evaluation includes visualizations such as
+- Confusion Matrix
+- ROC Curve
 
 The evaluation results are logged and saved to a file under `kerasModel/evaluator/evaluationPlots`.
 

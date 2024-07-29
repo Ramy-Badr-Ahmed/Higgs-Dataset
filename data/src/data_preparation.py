@@ -10,6 +10,9 @@ def prepareData(csvPath, outputPath, testSetSize=500000):
     Load the dataset from a CSV file, set column names, and save it to a local file.
     Also separates the test set from the training data based on the dataset description (500,000 test sets)
 
+    Dataset Description: The first column is the class label (1 for signal, 0 for background), followed by the 28 features (21 low-level features then 7 high-level features)
+    the first 21 features (columns 2-22) are kinematic properties measured by the particle detectors in the accelerator. The last seven features are functions of the first 21 features.
+
     Parameters:
     - csvPath (str): Path to the CSV file.
     - outputPath (str): Path to save the dataset locally.
@@ -22,13 +25,12 @@ def prepareData(csvPath, outputPath, testSetSize=500000):
         datasetDataFrame = pd.read_csv(csvPath, header = None)
 
         logging.info(f"\tSetting column names based on the dataset description")
-        columns = [f'feature_{i+1}' for i in range(21)] + [f'derived_feature_{i+1}' for i in range(7)] + ['target']
+        columns = ['target'] + [f'feature_{i + 1}' for i in range(21)] + [f'derived_feature_{i + 1}' for i in range(7)]
         datasetDataFrame.columns = columns
 
         logging.info(f"\tSeparating the test set from the main dataset")
         if testSetSize > 0:
-            # Ensure the dataset is large enough
-            if len(datasetDataFrame) > testSetSize:
+            if len(datasetDataFrame) > testSetSize:                 # Ensure the dataset is large enough
                 trainDataFrame = datasetDataFrame[:-testSetSize]
                 testDataFrame = datasetDataFrame[-testSetSize:]
 

@@ -4,7 +4,7 @@ import pandas as pd
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
 from sklearn.inspection import permutation_importance
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import accuracy_score
 from tensorflow import keras
 from dataLoader.data_loader_dask import DataLoaderDask
 
@@ -22,15 +22,11 @@ class FeatureImportanceEvaluator:
 
         def score_function(model, X, y):
             predictions = model.predict(X)
-            return mean_squared_error(y, predictions)
+            predicted_classes = (predictions > 0.5).astype(int)
+            return accuracy_score(y, predicted_classes)
 
         baselineScore = score_function(self.model, self.X, self.y)
-        logging.info(f"Baseline Score (MSE): {baselineScore}")
-
-        # # Sample 10% of your data
-        # sampled_X = self.X.sample(frac=0.01, random_state=42)
-        # sampled_y = self.y.sample(frac=0.01, random_state=42)
-        # result = permutation_importance(self.model, sampled_X, sampled_y, n_repeats=30, random_state=42, scoring = score_function)
+        logging.info(f"Baseline Score (Accuracy): {baselineScore}")
 
         result = permutation_importance(self.model, self.X, self.y, n_repeats = 30, random_state = 42, scoring = score_function)
 

@@ -25,8 +25,8 @@ class ModelTrainer:
             "minSampleSize": 100000,
             "learningRate": 0.001,
             "modelBuilder": None,    # callable. Fallback model in defineModel()
-            "loss": 'mean_squared_error',
-            "metrics": ['mae']
+            "loss": 'binary_crossentropy',
+            "metrics": ['accuracy']
         }
 
         self.params = {**defaultParams, **(params or {})}       # use default parameters; otherwise merge with provided params
@@ -71,16 +71,18 @@ class ModelTrainer:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             self.saveModel(f'trainedModels/keras_model_{timestamp}.keras')
 
+        except ValueError as e:
+            logging.error(f"Value error: {e}")
         except Exception as e:
             logging.error(f"An error occurred while training the Keras model: {e}")
 
     def prepareData(self, sample: bool = False, frac: float = 0.1) -> (pd.DataFrame, pd.DataFrame, pd.Series, pd.Series):
         """Prepare the training and testing data."""
         if sample:
-            X, y = self.sampleData(frac=frac)
+            X, y = self.sampleData(frac = frac)
             if X is None or y is None:
                 logging.error("No valid data to train on. Exiting.")
-                return None, None
+                return None, None, None, None
         else:
             X = self.dataFrame.drop('target', axis=1)
             y = self.dataFrame['target']
@@ -91,40 +93,44 @@ class ModelTrainer:
 
         if len(X) < self.minSampleSize:
             logging.error("Sampled data is too small for training.")
-            return None, None
+            return None, None, None, None
 
         # Split the dataset
         xTrain, xTest, yTrain, yTest = train_test_split(X, y, test_size = 0.2, random_state = 42)
+        logging.info(f"Data prepared: {len(xTrain)} training samples, {len(xTest)} testing samples.")
+
         return xTrain, xTest, yTrain, yTest
 
     def sampleData(self, frac: float = 0.1) -> (pd.DataFrame, pd.Series):
         """Sample a fraction of the data and return X and y as Dask DataFrames."""
         sampledData = self.dataFrame.sample(frac = frac, random_state = 42)
 
-        sampled_size = sampledData.shape[0].compute()
-        if sampled_size == 0:
+        sampledSize = sampledData.shape[0].compute()
+        if sampledSize == 0:
             logging.error("Sampled data is empty.")
             return None, None
 
         xSample = sampledData.drop('target', axis = 1)
         ySample = sampledData['target']
+
+        logging.info(f"Sampled data: {sampledSize} samples.")
         return xSample, ySample
 
     def defineModel(self, inputShape: int) -> None:
         if self.modelBuilder:
             self.model = self.modelBuilder(inputShape)
         else:
-            self.model = keras.Sequential([          # Fallback to this default model for regression
+            self.model = keras.Sequential([
                 layers.Input(shape=(inputShape,)),
                 layers.Dense(128, activation='relu'),
                 layers.Dense(64, activation='relu'),
-                layers.Dense(1)
+                layers.Dense(1, activation='sigmoid')  # Sigmoid activation for binary classification
             ])
 
         self.printModelSummary()
 
         optimizer = keras.optimizers.Adam(learning_rate = self.learningRate)
-        self.model.compile(optimizer = optimizer, loss = self.loss, metrics = self.metrics)       # default: 'mean_squared_error', ['mae']
+        self.model.compile(optimizer = optimizer, loss = self.loss, metrics = self.metrics)       # default: 'binary_crossentropy', ['accuracy']
 
     def printModelSummary(self):
         if self.model:
@@ -141,34 +147,42 @@ class ModelTrainer:
 
         for epoch in range(self.epochs):
             logging.info(f"Epoch {epoch + 1}/{self.epochs} -->"
-                         f" (Loss: {self.history.history['loss'][epoch]}, Val Loss: {self.history.history['val_loss'][epoch]})")
-
+                         f" (Loss: {self.history.history['loss'][epoch]}, "
+                         f"Val Loss: {self.history.history['val_loss'][epoch]}, "
+                         f"Accuracy: {self.history.history['accuracy'][epoch]}, "
+                         f"Val Accuracy: {self.history.history['val_accuracy'][epoch]})")
 
     def evaluateModel(self, xTest: pd.DataFrame, yTest: pd.Series) -> None:
-        loss, mae = self.model.evaluate(xTest, yTest)
-        logging.info(f"\n\tKeras Model Mean Absolute Error: {mae}")
-        logging.info(f"\n\tKeras Model loss: {loss}")
+        loss, accuracy = self.model.evaluate(xTest, yTest)
+        logging.info(f"\n\tKeras Model Loss: {loss}")
+        logging.info(f"\n\tKeras Model Accuracy: {accuracy}")
 
     def plotTrainingHistory(self) -> None:
         """Plot training and validation accuracy and loss."""
         if self.history is not None:
-            plt.figure(figsize=(12, 6))
+            plt.figure(figsize = (12, 6))
 
             # Plot the training and validation loss
-            plt.plot(self.history.history['loss'], label='Training Loss')
-            plt.plot(self.history.history['val_loss'], label='Validation Loss')
-
-            # Plot 'Mean Absolute Error' if it is part of the history
-            if 'mae' in self.history.history:
-                plt.plot(self.history.history['mae'], label='Training MAE')
-                plt.plot(self.history.history['val_mae'], label='Validation MAE')
-
+            plt.subplot(1, 2, 1)  # Create a subplot for loss
+            plt.plot(self.history.history['loss'], label = 'Training Loss')
+            plt.plot(self.history.history['val_loss'], label = 'Validation Loss')
             plt.title('Loss over Epochs')
             plt.xlabel('Epoch')
-            plt.ylabel('Loss / MAE')
+            plt.ylabel('Loss')
             plt.legend()
+
+            # Plot the training and validation accuracy
+            plt.subplot(1, 2, 2)
+            plt.plot(self.history.history['accuracy'], label = 'Training Accuracy')
+            plt.plot(self.history.history['val_accuracy'], label = 'Validation Accuracy')
+            plt.title('Accuracy over Epochs')
+            plt.xlabel('Epoch')
+            plt.ylabel('Accuracy')
+            plt.legend()
+
+            plt.tight_layout()
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            plt.savefig(f'trainedModels/training_loss_{timestamp}.png')
+            plt.savefig(f'trainedModels/training_history_{timestamp}.png')
             plt.show()
         else:
             logging.warning("No training history to plot.")
@@ -181,7 +195,7 @@ class ModelTrainer:
         logging.info(f"Model trained and saved to {modelPath}")
 
 def customModel(inputShape: int) -> Model:
-    """Example of a custom model builder function for regression"""
+    """Example of a custom model builder function for classification"""
     model = keras.Sequential([
         layers.Input(shape=(inputShape,)),
         layers.Dense(512, activation='relu'),
@@ -189,14 +203,14 @@ def customModel(inputShape: int) -> Model:
         layers.Dense(256, activation='relu'),
         layers.Dense(128, activation='relu'),
         layers.Dense(64, activation='relu'),
-        layers.Dense(1)
+        layers.Dense(1, activation='sigmoid')  # Sigmoid for binary classification
     ])
     return model
 
 if __name__ == '__main__':
     filePath = '../../data/higgs/prepared-higgs_test.csv'
 
-        # Using Dask data frame
+    # Using Dask data frame
     dataLoaderDask = DataLoaderDask(filePath)
     dataFrame = dataLoaderDask.loadData()
 
@@ -207,10 +221,10 @@ if __name__ == '__main__':
             "batchSize": 32,
             "minSampleSize": 100000,
             "learningRate": 0.001,
-            "modelBuilder": customModel,     # callable
-            "loss": 'mean_absolute_error',
-            "metrics": ['mae']
+            "modelBuilder": customModel,
+            "loss": 'binary_crossentropy',
+            "metrics": ['accuracy']
         }
         trainer = ModelTrainer(dataFrame)
-        trainer.trainKerasModel()           # optional: Train the Keras model with sampling, Set: trainKerasModel(sample = true, frac = 0.1).
+        trainer.trainKerasModel()           # optional: Train the Keras model with sampling, Set: trainKerasModel(sample = True, frac = 0.1) --> 10% sampling.
         trainer.plotTrainingHistory()

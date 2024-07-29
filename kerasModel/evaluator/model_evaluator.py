@@ -1,7 +1,8 @@
 import datetime
 import os
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, \
+    classification_report, roc_auc_score, roc_curve
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
 from tensorflow import keras
@@ -23,39 +24,81 @@ class ModelEvaluator:
         try:
             predictions = self.model.predict(self.xTest)
 
+            predictedClasses = (predictions > 0.5).astype(int)
+
             # Calculate metrics
-            mse = mean_squared_error(self.yTest, predictions)
-            mae = mean_absolute_error(self.yTest, predictions)
-            r2 = r2_score(self.yTest, predictions)
-            rmse = np.sqrt(mse)
+            accuracy = accuracy_score(self.yTest, predictedClasses)
+            precision = precision_score(self.yTest, predictedClasses)
+            recall = recall_score(self.yTest, predictedClasses)
+            f1 = f1_score(self.yTest, predictedClasses)
+            report = classification_report(self.yTest, predictedClasses)
+            confusionMatrix = confusion_matrix(self.yTest, predictedClasses)
+            auc = roc_auc_score(self.yTest, predictions)
+            fpr, tpr, thresholds = roc_curve(self.yTest, predictions)
 
-            logging.info(f"Mean Squared Error: {mse:.4f}")
-            logging.info(f"Mean Absolute Error: {mae:.4f}")
-            logging.info(f"R-squared: {r2:.4f}")
-            logging.info(f"Root Mean Squared Error: {rmse:.4f}")
+            logging.info(f"Accuracy: {accuracy:.4f}")
+            logging.info(f"Precision: {precision:.4f}")
+            logging.info(f"Recall: {recall:.4f}")
+            logging.info(f"F1 Score: {f1:.4f}")
+            logging.info(f"AUC: {auc}")
+            logging.info(f"Classification Report:\n{report}")
+            logging.info(f"Confusion Matrix:\n{confusionMatrix}")
 
-            with open('evaluationPlots/metric_report.txt', 'w') as f:
-                f.write(f"Mean Squared Error: {mse:.4f}\n"
-                        f"Mean Absolute Error: {mae:.4f}\n"
-                        f"R-squared: {r2:.4f}\n"
-                        f"Root Mean Squared Error: {rmse:.4f}\n")
+            self.saveMetrics(accuracy, precision, recall, f1, report, confusionMatrix, auc)
 
-            # Plot actual vs. predicted values
-            plt.figure(figsize=(10, 6))
-            plt.scatter(self.yTest, predictions, alpha = 0.5)
-            plt.plot([self.yTest.min(), self.yTest.max()],
-                     [self.yTest.min(), self.yTest.max()], 'r--')  # Ideal line
-            plt.xlabel('Actual Values')
-            plt.ylabel('Predicted Values')
-            plt.title('Actual vs. Predicted Values')
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            plt.savefig(f'evaluationPlots/actual_vs_predicted__{timestamp}.png')
-            plt.close()
+            self.plotEvaluations(confusionMatrix)
+            self.plotROC(fpr, tpr, auc)
 
             logging.info("\nModel evaluation completed.")
 
         except Exception as e:
             logging.error(f"\nAn error occurred while evaluating the model: {e}")
+
+    def saveMetrics(self, accuracy, precision, recall, f1, auc, report, confusionMatrix) -> None:
+        with open('evaluationPlots/metric_report.txt', 'w') as f:
+            f.write(f"Accuracy: {accuracy:.4f}\n"
+            f"Precision: {precision:.4f}\n"
+            f"Recall: {recall:.4f}\n"
+            f"F1 Score: {f1:.4f}\n"
+            f"AUC: {auc}\n"
+            f"Classification Report:{report}\n"
+            f"Confusion Matrix:{confusionMatrix}")
+
+    def plotEvaluations(self, confusionMatrix) -> None:
+        plt.figure(figsize = (8, 6))
+        plt.imshow(confusionMatrix, interpolation = 'nearest', cmap = plt.cm.Blues)
+        plt.title('Confusion Matrix')
+        plt.colorbar()
+        tick_marks = np.arange(2)
+        plt.xticks(tick_marks, ['Background', 'Signal'])
+        plt.yticks(tick_marks, ['Background', 'Signal'])
+
+        threshold = confusionMatrix.max() / 2.
+        for i, j in np.ndindex(confusionMatrix.shape):
+            plt.text(j, i, format(confusionMatrix[i, j], 'd'),
+                     horizontalalignment = "center",
+                     color = "white" if confusionMatrix[i, j] > threshold else "black")
+
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        plt.tight_layout()
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(f'evaluationPlots/confusion_matrix_{timestamp}.png')
+        plt.close()
+
+    def plotROC(self, fpr, tpr, auc) -> None:
+        plt.figure(figsize=(10, 6))
+        plt.plot(fpr, tpr, color='blue', label=f'ROC Curve (AUC = {auc:.4f})')
+        plt.plot([0, 1], [0, 1], color='red', linestyle='--')  # Diagonal line
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver Operating Characteristic (ROC) Curve')
+        plt.legend(loc = 'lower right')
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(f'evaluationPlots/roc_curve_{timestamp}.png')
+        plt.close()
 
 
 if __name__ == '__main__':

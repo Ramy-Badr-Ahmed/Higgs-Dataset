@@ -1,4 +1,16 @@
-Mean Squared Error: 0.0077
-Mean Absolute Error: 0.0539
-R-squared: 0.9219
-Root Mean Squared Error: 0.0880
+Accuracy: 0.7361
+Precision: 0.7696
+Recall: 0.7155
+F1 Score: 0.7415
+AUC:               precision    recall  f1-score   support
+
+         0.0       0.70      0.76      0.73    235493
+         1.0       0.77      0.72      0.74    264507
+
+    accuracy                           0.74    500000
+   macro avg       0.74      0.74      0.74    500000
+weighted avg       0.74      0.74      0.74    500000
+
+Classification Report:[[178826  56667]
+ [ 75260 189247]]
+Confusion Matrix:0.8172031754387772
