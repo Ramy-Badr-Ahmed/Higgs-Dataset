@@ -95,13 +95,13 @@ class FeatureImportanceEvaluator:
 
     def _createPermutationTasks(self, feature: str) -> List[delayed]:
         """Create delayed tasks for permuting a feature. Returns a list of delayed tasks."""
-        def evaluatePermutation() -> float:
-            XPermuted = self.x.map_partitions(lambda dataFrame: dataFrame.copy())  # Copy the Dask DataFrame
-            XPermuted = XPermuted.map_partitions(lambda dataFrame: dataFrame.assign(**{feature: np.random.permutation(dataFrame[feature].to_numpy())}))  # Shuffle the feature values
-            return self.scoreFunctionWithBatches(XPermuted)  # Evaluate score with the permuted feature
+        return [delayed(self.evaluatePermutation)(feature) for _ in range(self.nRepeats)]       # Repeat nRepeats
 
-        # Repeat nRepeats
-        return [delayed(evaluatePermutation)() for _ in range(self.nRepeats)]
+    def evaluatePermutation(self, feature: str) -> float:
+        """Evaluate the permutation of a feature and return the score."""
+        XPermuted = self.x.map_partitions(lambda dataFrame: dataFrame.copy())       # Copy the Dask DataFrame
+        XPermuted = XPermuted.map_partitions(lambda dataFrame: dataFrame.assign(**{feature: np.random.permutation(dataFrame[feature].to_numpy())}))     # Shuffle the feature values
+        return self.scoreFunctionWithBatches(XPermuted)  # Evaluate score with the permuted feature
 
     def getFeatureImportanceDataframe(self, results: list) -> pd.DataFrame:
         """Create a Pandas DataFrame for importance values using CuPY"""
