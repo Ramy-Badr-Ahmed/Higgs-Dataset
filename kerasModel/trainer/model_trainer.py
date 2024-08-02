@@ -208,7 +208,7 @@ def customModel(inputShape: int) -> Model:
     return model
 
 if __name__ == '__main__':
-    filePath = '../../data/higgs/prepared-higgs_test.csv'
+    filePath = '../../data/higgs/prepared-higgs_train.csv'
 
     # Using Dask data frame
     dataLoaderDask = DataLoaderDask(filePath)
@@ -225,6 +225,6 @@ if __name__ == '__main__':
             "loss": 'binary_crossentropy',
             "metrics": ['accuracy']
         }
-        trainer = ModelTrainer(dataFrame)
+        trainer = ModelTrainer(dataFrame, params)
         trainer.trainKerasModel()           # optional: Train the Keras model with sampling, Set: trainKerasModel(sample = True, frac = 0.1) --> 10% sampling.
         trainer.plotTrainingHistory()

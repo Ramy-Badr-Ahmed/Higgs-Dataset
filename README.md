@@ -250,7 +250,7 @@ evaluator.evaluate()
 
 #### Feature Importance Analysis
 
-The feature importance is computed using permutation importance and visualised using a bar chart. 
+The feature importance is computed using permutation importance and visualised using a bar chart. It is implemented once using the Pandas approach (with SciKit) and another using Dask for parallel processing.
 
 The chart and the result CSV file are saved under `kerasModel/featureImportance/featureImportancePlots`.
 
@@ -269,4 +269,8 @@ dataFrame = dataLoaderDask.loadData()
 
 evaluator = FeatureImportanceEvaluator(modelPath, dataFrame)
 evaluator.evaluate()
+        
+        # Alternatively
+evaluator = FeatureImportanceEvaluator(modelPath, dataFrame, sampleFraction = 0.1, nRepeats=32)  # with sampling
+evaluator.evaluate(withDask = False)        # with pandas
 ```
